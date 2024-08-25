@@ -93,10 +93,23 @@ async function createComment(body) {
     };
     const verifyResult = await docClient.send(new GetCommand(verifyParams));
     console.log('Verified transcript contents:', JSON.stringify(verifyResult.Item));
+    
+    const openaiResponse = await sendTranscriptToOpenAI({
+      transcript: verifyResult.Item.transcript,
+      transcriptId,
+      userId,
+      comments: verifyResult.Item.comments
+    });
+    console.log('OpenAI response:', openaiResponse);
 
-    return {
+   return {
       statusCode: 200,
-      body: JSON.stringify({ message: 'Comment created and linked successfully', commentId, transcriptContents: verifyResult.Item })
+      body: JSON.stringify({ 
+        message: 'Comment created and linked successfully', 
+        commentId, 
+        transcriptContents: verifyResult.Item,
+        openaiAnalysis: openaiResponse.data.message 
+      })
     };
   } catch (error) {
     console.error('Error in createComment:', error);
@@ -293,8 +306,6 @@ async function getFileFromS3(key) {
   const { Body } = await s3Client.send(new GetObjectCommand(params));
   return Body.toString('base64');
 }
-
-
 
 
 async function deleteFileFromS3(key) {
